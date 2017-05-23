@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+docker build . -t gulp
+docker run --rm -v `pwd`:/opt gulp npm install 

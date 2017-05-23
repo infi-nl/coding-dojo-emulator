@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CHIP-8</title>
+  <style type="text/css">
+    body {
+     font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+     font-size:   0.8em;
+     background:  #212121;
+        color: #ffffff;
+    }
+
+    a {
+     color:       #F92672;
+     font-weight: bold;
+    }
+
+    ul {
+     list-style: none;
+    }
+
+    li:before{
+     content: "\00BB   ";
+     color: #f92672; 
+     line-height: 20px;
+    }
+
+    .emulator {
+     background: #272822;
+     padding:    20px;
+     height:     370px;
+     width:      800px;
+    }
+
+    .emulator .description {
+     font-weight: bold;
+     color:       #ffffff;
+    }
+
+    #display { background: #000000; }
+
+    .debugPanel {
+     padding:    5px;
+     width:      390px;
+     height:     290px;
+     overflow-y: auto;
+     border:     0px;
+     color:      #ffffff;
+    }
+
+    .debugPanel .line {
+     display:     inline-block;
+     width:       100%;
+     cursor:      default;
+     white-space: pre;
+    }
+
+    .debugPanel .line.breakpoint {
+     background: #ff0000;
+     color:      #ffffff;
+    }
+
+    .debugPanel .line::before {
+      content: "  ";
+    }
+
+    .debugPanel .line.breakpoint::before {
+      content:        '■ ';
+    }
+
+    .debugPanel .line.pc {
+     background: #ffffff !important;
+     color:      #000000;
+    }
+
+    .panel {
+     background: #212121;
+     border:     1px solid #ffffff;
+     margin:     1px;
+    }
+
+    .cpuStatusPanel {
+     padding: 20px;
+     color:   #ffffff;
+    }
+
+    .cpuStatusPanel table td {
+     width: 60px;
+    }
+
+    #emulatorTemplate {
+     display: none;
+    }
+
+    .emulator canvas {
+     margin-left: 50px; 
+    }
+
+    .panel {
+     padding: 10px;
+    }
+
+    .leftPanel {
+     width:  400px;
+     height: 300px;
+     float:  left;
+    }
+
+    .rightPanel {
+     width:  350px;
+     float:  left;
+     height: 300px;
+    }
+
+    .menu.panel {
+     width: 774px;
+    }
+	
+	#assembler-container {
+		margin:25px;
+	}
+  </style>
+
+  <script type="text/javascript" src="timer-factory.js"></script>
+  <script type="text/javascript" src="delay-timer.js"></script>
+  <script type="text/javascript" src="sound-timer.js"></script>
+     <script type="text/javascript" src="chip8.ns.js"></script>
+     <script type="text/javascript" src="debugger.js"></script>
+     <script type="text/javascript" src="display.js"></script>
+     <script type="text/javascript" src="keyboard.js"></script>
+     <script type="text/javascript" src="speaker.js"></script>
+     <script type="text/javascript" src="mmu.js"></script>
+     <script type="text/javascript" src="cpu.js"></script>
+     <script type="text/javascript" src="runner.js"></script>
+     <script type="text/javascript" src="ui.js"></script>
+     <script type="text/javascript" src="main.js"></script>
+     <script type="text/javascript" src="chip8peg.js"></script>
+     <script type="text/javascript" src="assembler.js"></script>
+     <script type="text/javascript">
+         function runAssembler(instructionsField, outputId) {
+			let hexdata = generateHexFromAssembly(instructionsField);
+			document.getElementById(outputId).innerHTML = hexdata;
+         }
+		
+		function generateAndDownloadRom(instructionsField){
+			let hexdata = generateHexFromAssembly(instructionsField);
+			let byteArray = new Uint8Array(hexdata.length/2);
+			
+			for (var x = 0; x < byteArray.length; x++){
+				byteArray[x] = parseInt(hexdata.substr(x*2,2), 16);
+			}
+
+			saveByteArray("output.rom", byteArray);
+		}
+		
+		function generateHexFromAssembly(instructionsField){
+			let instructions = document.getElementById(instructionsField).value.toUpperCase();
+			return window.Assembler.parse(instructions).join('');
+		}
+		
+		function saveByteArray(fileName, byte) {
+			let blob = new Blob([byte], {type: 'application/octet-stream'});
+			let link = document.createElement('a');
+			link.href = window.URL.createObjectURL(blob);
+			link.download = fileName;
+			link.click();
+		};
+     </script>
+ </head>
+ <body>
+  <div id="content">
+    <ul>
+      <li><a href="./tests.html" target="_NEW">Tests</a></li>
+      <li><a href="./C8TECH10.html" target="_NEW">Documentation [by Cowgod] </a></li>
+      <div class="uglyspacing" style="padding-top:10px;"></div>
+      <li><a href="./index.html">Home</a></li>
+      <li><a href="./programs.html">Complexer ROMs</a></li>
+      <li><a href="./debug.html">Practice ROMs</a></li>
+      <li><a href="./assembler.html">Create ROMs</a></li>
+    </ul>
+
+      <div id="assembler-container">
+          Create a ROM from instructions. Separate lines by ';'.<br>
+          Example code for using LD and ADD:
+          <pre>
+LD   V0, 0x00;
+LD   V1, 0x01;
+LD   V2, 0x0F;
+LD   V3, 0x01;
+ADD  V0, V1;
+ADD  V2, V3;
+RET</pre>
+		<br />
+		<textarea name="instructions" id="instructions" rows="25" cols="50"></textarea> 
+		<br />
+		<button name="assemble" onclick="runAssembler('instructions', 'opcodes');">Create Hex</button>
+		<button name="assemble" onclick="generateAndDownloadRom('instructions', 'opcodes');">Create ROM File</button> <br /> <br />
+		<div>Generated HEX:<br>&nbsp;</div>
+		<div id="opcodes">
+		  [no data yet]
+		</div>
+	</div>
+  </div>
+
+ </body>
+</html>
