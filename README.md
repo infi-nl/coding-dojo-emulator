@@ -13,3 +13,17 @@ No Docker
 --
 You can simply run a portable webserver, like this one: http://www.usbwebserver.net/en/download.php.
 Everything except downloading romfiles works as well by just opening index.html in Firefox or Safari (Chrome does not work).
+
+Another tested option would be to use this on Windows 10:
+
+- Node (tested with version 6.10.0)
+- NPM (tested with version 3.10.10)
+
+Just do...
+
+1. `npm install -g serve`
+1. `npm install -g gulp`
+1. `npm install` inside the cloned repo folder
+1. `gulp watch`
+
+...and your browser should fire up with the dojo running using BrowserSync.
