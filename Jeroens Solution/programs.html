@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>CHIP-8</title>
+  <style type="text/css">
+    body {
+     font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+     font-size:   0.8em;
+     background:  #212121;
+    }
+
+    a {
+     color:       #F92672;
+     font-weight: bold;
+    }
+
+    ul {
+     list-style: none;
+    }
+
+    li:before{
+     content: "\00BB   ";
+     color: #f92672; 
+     line-height: 20px;
+    }
+
+    .emulator {
+     background: #272822;
+     padding:    20px;
+     height:     370px;
+     width:      800px;
+    }
+
+    .emulator .description {
+     font-weight: bold;
+     color:       #ffffff;
+    }
+
+    #display { background: #000000; }
+
+    .debugPanel {
+     padding:    5px;
+     width:      390px;
+     height:     290px;
+     overflow-y: auto;
+     border:     0px;
+     color:      #ffffff;
+    }
+
+    .debugPanel .line {
+     display:     inline-block;
+     width:       100%;
+     cursor:      default;
+     white-space: pre;
+    }
+
+    .debugPanel .line.breakpoint {
+     background: #ff0000;
+     color:      #ffffff;
+    }
+
+    .debugPanel .line::before {
+      content: "  ";
+    }
+
+    .debugPanel .line.breakpoint::before {
+      content:        '■ ';
+    }
+
+    .debugPanel .line.pc {
+     background: #ffffff !important;
+     color:      #000000;
+    }
+
+    .panel {
+     background: #212121;
+     border:     1px solid #ffffff;
+     margin:     1px;
+    }
+
+    .cpuStatusPanel {
+     padding: 20px;
+     color:   #ffffff;
+    }
+
+    .cpuStatusPanel table td {
+     width: 60px;
+    }
+
+    #emulatorTemplate {
+     display: none;
+    }
+
+    .emulator canvas {
+     margin-left: 50px; 
+    }
+
+    .panel {
+     padding: 10px;
+    }
+
+    .leftPanel {
+     width:  400px;
+     height: 300px;
+     float:  left;
+    }
+
+    .rightPanel {
+     width:  350px;
+     float:  left;
+     height: 300px;
+    }
+
+    .menu.panel {
+     width: 774px;
+    }
+    .add-rom-wrapper {
+      text-align:right;
+      float:right;
+    }
+    .add-rom-wrapper input {
+      width:250px;
+    }
+  </style>
+
+  <script type="text/javascript" src="timer-factory.js"></script>
+  <script type="text/javascript" src="delay-timer.js"></script>
+  <script type="text/javascript" src="sound-timer.js"></script>
+ </head>
+ <body>
+  <div id="content">
+    <ul>
+      <li><a href="./tests.html" target="_NEW">Tests</a></li>
+      <li><a href="./C8TECH10.html" target="_NEW">Documentation [by Cowgod] </a></li>
+      <div class="uglyspacing" style="padding-top:10px;"></div>
+      <li><a href="./index.html">Home</a></li>
+      <li><a href="./programs.html">Complexer ROMs</a></li>
+      <li><a href="./debug.html">Practice ROMs</a></li>
+      <li><a href="./assembler.html">Create ROMs</a></li>
+    </ul>
+  
+    <div class="emulator" id="emulatorTemplate">
+     <div class="description"></div>
+     <div class="menu panel">
+      <select class="romSelector">
+       <option selected="selected" disabled="disabled">Select a ROM</option>
+       <option value="brix.rom">Brix</option>
+       <option value="helloworld.rom">Hello World</option>
+       <option value="pong.rom">Pong</option>
+       <option value="pong2.rom">Pong 2</option>
+       <option value="tank.rom">Tank</option>
+       <option value="tetris.rom">Tetris</option>
+       <option value="tictac.rom">Tic Tac Toe</option>
+       <option value="ufo.rom">U.F.O.</option>
+       <option value="add.rom">Add</option>
+       <option value="sub.rom">Sub</option>
+      </select>
+   
+      <button type="button" class="start">Start</button>
+      <button type="button" class="step">Step</button>
+      <button type="button" class="reset">Reset</button>
+
+      <div class="add-rom-wrapper">
+        <input type="text" class="addrom-input" placeholder="Add option to romlist (e.g. myrom.rom)" />
+        <button type="button" class="addrom-button">Add</button>
+      </div>
+     </div>
+     <div class="leftPanel panel">
+      <div class="debugPanel"></div>
+     </div>
+     <div class="rightPanel panel">
+      <div class="cpuStatusPanel">
+       <table>
+        <tr>
+          <td>V0 <span class="v0">-</span></td>
+          <td>V4 <span class="v4">-</span></td>
+          <td>V8 <span class="v8">-</span></td>
+          <td>VC <span class="vC">-</span></td>
+          <td>PC <span class="pc">-</span></td>
+        </tr>
+        <tr>
+          <td>V1 <span class="v1">-</span></td>
+          <td>V5 <span class="v5">-</span></td>
+          <td>V9 <span class="v9">-</span></td>
+          <td>VD <span class="vD">-</span></td>
+          <td>VI <span class="vI">-</span></td>
+        </tr>
+        <tr>
+          <td>V2 <span class="v2">-</span></td>
+          <td>V6 <span class="v6">-</span></td>
+          <td>VA <span class="vA">-</span></td>
+          <td>VE <span class="vE">-</span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>V3 <span class="v3">-</span></td>
+          <td>V7 <span class="v7">-</span></td>
+          <td>VB <span class="vB">-</span></td>
+          <td>VF <span class="vF">-</span></td>
+          <td></td>
+        </tr>
+        <tr><td colspan="5">&nbsp;</td></tr>
+       </table>
+       <table>
+        <tr>
+          <td>DT <span class="dt">-</span></td>
+          <td>ST <span class="st">-</span></td>
+          <td colspan="3"></td>
+        </tr>
+       </table>
+      </div>
+      <div>
+       <canvas class="display" width="256" height="128">Canvas could not be displayed.</canvas>
+      </div>
+     </div>
+    </div>
+  </div>
+  
+  <script type="text/javascript" src="chip8.ns.js"></script>
+  <script type="text/javascript" src="debugger.js"></script>
+  <script type="text/javascript" src="display.js"></script>
+  <script type="text/javascript" src="keyboard.js"></script>
+  <script type="text/javascript" src="speaker.js"></script>
+  <script type="text/javascript" src="mmu.js"></script>
+  <script type="text/javascript" src="cpu.js"></script>
+  <script type="text/javascript" src="runner.js"></script>
+  <script type="text/javascript" src="ui.js"></script>
+  <script type="text/javascript" src="main.js"></script>
+ </body>
+</html>
