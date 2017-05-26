@@ -1,5 +1,8 @@
 "use strict";
 
+// TODO No singletons
+// TODO Inject RNG
+
 (function (Chip8) {
    Chip8.CPU = function (mmu, display) {
      var _dataRegister, _addressRegister, _dtRegister, _stRegister, _pc, _sp,
@@ -137,50 +140,53 @@
            };
          }()),
          ALU = (function () {
-           var add          = function (/* add parameters */) {
-                 debugger;
-
-                 /* Dont forget about VF */
-                 return;
+           var add          = function (x, y) {
+                 var result = x + y;
+  
+                 _setRegister(0xF, result > 255 ? 1 : 0);
+  
+                 return result & 0xFF;
                },
-               subtract     = function () {
-                
-                /* How do you represent a negative number? */
-
-                /* Dont forget about VF */
-
-                debugger;
-                return;
+               subtract     = function (x, y) {
+                 var borrow    = x < y,
+                     rawResult = x - y,
+                     result    = borrow ? rawResult + 256 : rawResult;
+  
+                 _setRegister(0xF, borrow ? 0 : 1); // ED *_NOT_* borrow = 1
+  
+                 return result & 0xFF;
                },
-               shr          = function () {
-                 //shift and rotate
-
-                 debugger;
-                 return;
+               shr          = function (x) {
+                 var result = (x >> 1) & 0xFF;
+  
+                 _setRegister(0xF, (x & 0x01) === 0x01 ? 1 : 0);
+  
+                 return result;
                },
-               shl          = function () {
-                 //shift and rotate
-
-                 debugger;
-                 return;
+               shl          = function (x) {
+                 var result = (x << 1) & 0xFF;
+  
+                 _setRegister(0xF, (x & 0x80) === 0x80 ? 1 : 0);
+  
+                 return result;
                },
                instructions = {
                     // OR Vx, Vy
-                    0x0001: function () { debugger; return; },
+                    0x0001: function (operand0, operand1) { return operand0 | operand1; },
                     // AND Vx, Vy
-                    0x0002: function () { debugger; return; },
+                    0x0002: function (operand0, operand1) { return operand0 & operand1; },
                     // XOR Vx, Vy
-                    0x0003: function () { debugger; return; },
+                    0x0003: function (operand0, operand1) { return operand0 ^ operand1; },
                     // ADD Vx, Vy
-                    0x0004: function () { return add(); },
+                    0x0004: function (operand0, operand1) { return add(operand0, operand1); },
                     // SUB Vx, Vy
-                    0x0005: function () { return subtract(); },
+                    0x0005: function (operand0, operand1) { return subtract(operand0, operand1); },
                     // SHR Vx{, Vy}
-                    0x0006: function () { return shr(); },
+                    0x0006: function (operand0, operand1) { return shr(operand0); },
                     // SUBN Vx, Vy
-                    0x0007: function () { return subtract(); },
+                    0x0007: function (operand0, operand1) { return subtract(operand0, operand1); },
                     // SHL Vx{, Vy}
-                    0x000E: function () { return shl(); },
+                    0x000E: function (operand0, operand1) { return shl(operand0); },
               };
   
               return {
@@ -196,7 +202,7 @@
                 0x00EE: function () { _pc = Stack.pop(); incrementPC(); }
               };
   
-              if (!instructions[instruction & 0x00FF]) {
+              if (!instructions[instruction & 0x00FF]) { // TODO ED Tidy up
                 console.log("SYS", instruction);
                 // SYS
                 incrementPC();
@@ -206,49 +212,45 @@
               instructions[instruction & 0x00FF]();
             },
             // JP addr
-            0x1000: function (instruction) { 
-              debugger; 
-            },
+            0x1000: function (instruction) { _pc = instruction & 0x0FFF; },
             // CALL addr
-            0x2000: function (instruction) { 
-
-              //looks like JP
-
-              debugger; 
-            },
+            0x2000: function (instruction) { Stack.push(_pc); _pc = instruction & 0x0FFF; },
             // SE Vx, byte
             0x3000: function (instruction) {
-              debugger;
-              //var skipInstruction = 
-              //if (skipInstruction) {
-                
-              //}
+              var skipInstruction = _dataRegister[(instruction & 0x0F00) >> 8] === (instruction & 0x00FF);
+              if (skipInstruction) {
+                incrementPC();
+              }
+  
+              incrementPC();
             },
             // SNE Vx, byte
             0x4000: function (instruction) {
-              //similar to SE
-
-              debugger;
+              var skipInstruction = _dataRegister[(instruction & 0x0F00) >> 8] !== (instruction & 0x00FF);
+              if (skipInstruction) {
+                incrementPC();
+              }
+  
+              incrementPC();
             },
             // SE Vx, Vy
             0x5000: function (instruction) {
-              debugger;
+              var skipInstruction = _dataRegister[(instruction & 0x0F00) >> 8] === _dataRegister[(instruction & 0x00F0) >> 4];
+              if (skipInstruction) {
+                incrementPC();
+              }
+  
+              incrementPC();
             },
             // LD Vx, byte
-            0x6000: function (instruction) { 
-              debugger; 
-            },
+            0x6000: function (instruction) { _dataRegister[(instruction & 0x0F00) >> 8] = instruction & 0x00FF; incrementPC(); },
             // ADD Vx, byte
-            0x7000: function (instruction) { 
-              debugger; 
-            },
+            0x7000: function (instruction) { _dataRegister[(instruction & 0x0F00) >> 8] = (_dataRegister[(instruction & 0x0F00) >> 8] + (instruction & 0x00FF)) & 0xFF; incrementPC(); },
             0x8000: function (instruction) {
-              debugger;
-              //define these variables
-              var registerX      = undefined,
-                  registerY      = undefined,
-                  registerXValue = undefined,
-                  registerYValue = undefined,
+              var registerX      = (instruction >> 8) & 0xF,
+                  registerY      = (instruction >> 4) & 0xF,
+                  registerXValue = _dataRegister[registerX],
+                  registerYValue = _dataRegister[registerY],
                   instructions   = {
                     // LD Vx, Vy
                     0x0000: function () { _dataRegister[registerX] = registerYValue; incrementPC(); },
@@ -265,7 +267,7 @@
                     // SHR Vx{, Vy}
                     0x0006: function () { _dataRegister[registerX] = ALU.process(0x0006, registerXValue, registerYValue); incrementPC();},
                     // SUBN Vx, Vy
-                    0x0007: function () { _dataRegister[registerX] = ALU.process(0x0007, registerYValue, registerXValue); incrementPC();}, // One is not like the others
+                    0x0007: function () { _dataRegister[registerX] = ALU.process(0x0007, registerYValue, registerXValue); incrementPC();}, // ED One is not like the others
                     // SHL Vx{, Vy}
                     0x000E: function () { _dataRegister[registerX] = ALU.process(0x000E, registerXValue, registerYValue); incrementPC();},
                   };
@@ -274,23 +276,33 @@
             },
             // SNE Vx, Vy
             0x9000: function (instruction) {
-              debugger;
+              var skipInstruction = _dataRegister[(instruction & 0x0F00) >> 8] !== _dataRegister[(instruction & 0x00F0) >> 4];
+              if (skipInstruction) {
+                incrementPC();
+              }
+  
+              incrementPC();
             },
             // LD I, addr
-            0xA000: function (instruction) { 
-              /* I = _addressregister */
-              debugger; 
-            },
+            0xA000: function (instruction) { _addressRegister = instruction & 0x0FFF; incrementPC(); },
             // JP V0, addr
-            0xB000: function (instruction) { debugger; },
+            0xB000: function (instruction) { _pc = _dataRegister[0] + (instruction & 0x0FFF); },
             // RND Vx, byte
-            0xC000: function (instruction) { debugger; /* you can use _rng() here */  },
+            0xC000: function (instruction) { _dataRegister[(instruction & 0x0F00) >> 8] = _rng() & (instruction & 0x00FF); incrementPC();  },
             // DRW Vx, Vy, nibble
             0xD000: function (instruction) {
-              debugger;
-
-              //get coordinates
-              //get pixelBytes
+              var i,
+                  registerX      = (instruction >> 8) & 0xF,
+                  registerY      = (instruction >> 4) & 0xF,
+                  registerXValue = _dataRegister[registerX],
+                  registerYValue = _dataRegister[registerY],
+                  numberOfBytes  = instruction & 0xF,
+                  pixelBytes     = new Uint8Array(numberOfBytes);
+  
+              display.clear();
+              for (i=0; i<numberOfBytes; i++) {
+                pixelBytes[i] = mmu.read(_addressRegister + i); 
+              }
   
               DisplayBuffer.putSprite(registerXValue, registerYValue, pixelBytes);
   
@@ -313,7 +325,7 @@
                   registerXValue = _dataRegister[registerX],
                   instructions   = {
                     // LD Vx, DT
-                    0x0007: function () { debugger; _dataRegister[registerX] = _dtRegister; incrementPC(); },
+                    0x0007: function () { _dataRegister[registerX] = _dtRegister; incrementPC(); },
                     // LD Vx, K
                     0x000A: function () { KeyWaiter.wait(registerX); incrementPC(); },
                     // LD DT, Vx
