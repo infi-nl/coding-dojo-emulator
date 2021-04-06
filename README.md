@@ -1,5 +1,9 @@
 # Infi Emulator DOJO
 
+----
+**⚠ Warning:** This repository is _frozen in time_, and getting no new (security) updates. It is left public, should it help and offer some guidance around its subjects to future visitors. However, for latest guidance on involved subjects, we recommend going to the official sources.
+----
+
 Instructions
 --
 Find the instructions in the index.html page.
